@@ -1,0 +1,15 @@
+{
+    "name": "crodas/concurrent-file-writer",
+    "autoload": {
+        "psr-0": {
+            "ConcurrentFileWriter": "src"
+        }
+    },
+    "authors": [
+        {
+            "name": "Cesar Rodas",
+            "email": "cesar@rodas.me"
+        }
+    ],
+    "require": {}
+}
