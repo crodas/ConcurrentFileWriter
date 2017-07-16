@@ -30,8 +30,9 @@ class FileWriter
             throw new RuntimeException("Cannot move the temporary file");
         }
         $this->commited = true;
+        return $this->file;
     }
-    
+
     public function getStream()
     {
         $this->checkIsUncommitted();
