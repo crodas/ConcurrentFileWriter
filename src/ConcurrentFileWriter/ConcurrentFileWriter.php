@@ -2,6 +2,8 @@
 
 namespace ConcurrentFileWriter;
 
+use RuntimeException;
+
 class ConcurrentFileWriter
 {
     protected $file;
@@ -21,20 +23,17 @@ class ConcurrentFileWriter
             return false;
         }
 
-        if (!is_dir(dirname($this->file))) {
-            mkdir(dirname($this->file), 0777, true);
-        }
-
-        $this->_writeFile($this->file, $this->placeholderContent($metadata));
-
         $this->createTemporaryFolder();
+        $this->_writeFile($this->file, $this->placeholderContent($metadata));
 
         return true;
     }
 
     protected function createTemporaryFolder()
     {
-        mkdir($this->chunks, 0777, true);
+        Util::mkdir($this->chunks);
+        Util::mkdir(dirname($this->file));
+
     }
 
     public function placeholderContent($metadata)
@@ -64,36 +63,25 @@ class ConcurrentFileWriter
         return is_array(stream_get_meta_data($input));
     }
 
-    public function write($offset, $input)
+    public function write($offset, $input, $limit = -1)
     {
         if (!is_dir($this->chunks)) {
             throw new RuntimeException("Cannot write into the file");
         }
         $file = $this->getChunkFile($offset);
         if ($this->isStream($input)) {
-            stream_copy_to_stream($input, $file->getStream());
+            $wrote = stream_copy_to_stream($input, $file->getStream(), $limit);
         } else {
-            $file->write($input);
-        }
-        return $file->commit();
-    }
-
-    public function rrmdir($dir)
-    {
-        if (is_dir($dir)) {
-            $objects = scandir($dir);
-            foreach ($objects as $object) {
-                if ($object != "." && $object != "..") {
-                    $file = $dir . '/' . $object;
-                    if (is_dir($file)) {
-                        $this->rrmdir($file);
-                    } else {
-                        unlink($file);
-                    }
-                }
+            if ($limit >= 0) {
+                $wrote = $file->write(substr($input, 0, $limit));
+            } else {
+                $wrote = $file->write($input);
             }
-            rmdir($dir);
         }
+
+        $file->commit();
+
+        return $wrote;
     }
 
     public function getChunks()
@@ -117,8 +105,33 @@ class ConcurrentFileWriter
         return $files;
     }
 
+    public function getMissingChunks()
+    {
+        $missing = array();
+        $chunks  = $this->getChunks();
+        $last    = array_shift($chunks);
+
+        if ($last['offset'] !== 0) {
+            $missing[] = array('offset' => 0, 'size' => $last['offset']);
+        }
+
+        foreach ($chunks as $chunk) {
+            if ($chunk['offset'] !== $last['offset'] + $last['size']) {
+                $offset = $last['offset'] + $last['size'];
+                $missing[] = array('offset' => $offset, 'size' => $chunk['offset'] - $offset);
+            }
+            $last = $chunk;
+        }
+
+        return $missing;
+    }
+
     public function finalize()
     {
+        $missing = $this->getMissingChunks();
+        if (!empty($missing)) {
+            throw new RuntimeException("File is incomplete, cannot finalize it");
+        }
         $chunks = $this->getChunks();
         $file = new FileWriter($this->file, $this->tmp);
         $fp = $file->getStream();
@@ -129,7 +142,7 @@ class ConcurrentFileWriter
             fclose($tmp);
         }
         $file->commit();
-        $this->rrmdir($this->tmp);
+        Util::delete($this->tmp);
     }
 
 }

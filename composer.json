@@ -11,5 +11,9 @@
             "email": "cesar@rodas.me"
         }
     ],
-    "require": {}
+    "require": {},
+    "require-dev": {
+        "crodas/phpunit-compat": "^1.7",
+        "paragonie/random_compat": "^2.0"
+    }
 }
