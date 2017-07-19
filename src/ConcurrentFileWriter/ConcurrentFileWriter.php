@@ -63,7 +63,7 @@ class ConcurrentFileWriter
         $wrote = $chunk->write($input, $limit);
         $chunk->commit();
 
-        return $wrote;
+        return $chunk;
     }
 
     public function getChunks()

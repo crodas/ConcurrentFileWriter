@@ -80,7 +80,9 @@ class BasicTest extends TestCase
         $x = new ConcurrentFileWriter('files/str');
         $x->create();
         $x->write(0, 'hi there', 3);
-        $x->write(3, 'here');
+        $chunk = $x->write(3, 'here');
+        $this->assertTrue($chunk instanceof ChunkWriter);
+        $this->assertRegexp('@/3$@', $chunk->getFileName());
         $x->finalize();
         
         $this->assertEquals('hi here', file_get_contents('files/str'));

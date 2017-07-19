@@ -9,9 +9,9 @@ use RuntimeException;
  */
 class ChunkWriter
 {
-	/**
-	 * Is this this chunk finished?
-	 */
+    /**
+     * Is this this chunk finished?
+     */
     protected $commited = false;
     protected $file;
     protected $tmp;
@@ -49,21 +49,26 @@ class ChunkWriter
         return is_array(stream_get_meta_data($input));
     }
 
-	function getStream()
-	{
-		$this->checkIsUncommitted();
-		return $this->fp;
-	}
+    function getStream()
+    {
+        $this->checkIsUncommitted();
+        return $this->fp;
+    }
+
+    public function getFileName()
+    {
+        return realpath($this->file);
+    }
 
     public function write($content, $limit = -1)
     {
         $this->checkIsUnCommitted();
         if ($this->isStream($content)) {
             $wrote = stream_copy_to_stream($content, $this->fp, $limit);
-		} else {
-			$wrote = fwrite($this->fp, $content, $limit === -1 ? strlen($content) : $limit);
-		}
-		return $wrote;
+        } else {
+            $wrote = fwrite($this->fp, $content, $limit === -1 ? strlen($content) : $limit);
+        }
+        return $wrote;
     }
 
     function checkIsUnCommitted()
