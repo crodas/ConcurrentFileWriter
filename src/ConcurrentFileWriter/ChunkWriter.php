@@ -4,8 +4,14 @@ namespace ConcurrentFileWriter;
 
 use RuntimeException;
 
+/**
+ *
+ */
 class ChunkWriter
 {
+	/**
+	 * Is this this chunk finished?
+	 */
     protected $commited = false;
     protected $file;
     protected $tmp;
@@ -34,16 +40,30 @@ class ChunkWriter
         return $this->file;
     }
 
-    public function getStream()
+    protected function isStream($input)
     {
-        $this->checkIsUncommitted();
-        return $this->fp;
+        if (!is_resource($input)) {
+            return false;
+        }
+
+        return is_array(stream_get_meta_data($input));
     }
 
-    public function write($content)
+	function getStream()
+	{
+		$this->checkIsUncommitted();
+		return $this->fp;
+	}
+
+    public function write($content, $limit = -1)
     {
         $this->checkIsUnCommitted();
-        fwrite($this->fp, $content);
+        if ($this->isStream($content)) {
+            $wrote = stream_copy_to_stream($content, $this->fp, $limit);
+		} else {
+			$wrote = fwrite($this->fp, $content, $limit === -1 ? strlen($content) : $limit);
+		}
+		return $wrote;
     }
 
     function checkIsUnCommitted()

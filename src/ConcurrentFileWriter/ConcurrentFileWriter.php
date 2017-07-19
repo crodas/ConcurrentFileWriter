@@ -54,32 +54,14 @@ class ConcurrentFileWriter
         return new ChunkWriter($this->chunks . $offset, $this->tmp);
     }
 
-    protected function isStream($input)
-    {
-        if (!is_resource($input)) {
-            return false;
-        }
-
-        return is_array(stream_get_meta_data($input));
-    }
-
     public function write($offset, $input, $limit = -1)
     {
         if (!is_dir($this->chunks)) {
             throw new RuntimeException("Cannot write into the file");
         }
-        $file = $this->getChunkFile($offset);
-        if ($this->isStream($input)) {
-            $wrote = stream_copy_to_stream($input, $file->getStream(), $limit);
-        } else {
-            if ($limit >= 0) {
-                $wrote = $file->write(substr($input, 0, $limit));
-            } else {
-                $wrote = $file->write($input);
-            }
-        }
-
-        $file->commit();
+        $chunk = $this->getChunkFile($offset);
+        $wrote = $chunk->write($input, $limit);
+        $chunk->commit();
 
         return $wrote;
     }
