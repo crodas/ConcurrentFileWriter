@@ -33,7 +33,7 @@ class ConcurrentFileWriter
     {
         Util::mkdir($this->chunks);
         Util::mkdir(dirname($this->file));
-
+        file_put_contents($this->tmp . '.lock', '');
     }
 
     public function placeholderContent($metadata)
@@ -51,7 +51,7 @@ class ConcurrentFileWriter
 
     protected function getChunkFile($offset)
     {
-        return new FileWriter($this->chunks . $offset, $this->tmp);
+        return new ChunkWriter($this->chunks . $offset, $this->tmp);
     }
 
     protected function isStream($input)
@@ -86,6 +86,9 @@ class ConcurrentFileWriter
 
     public function getChunks()
     {
+        if (!is_dir($this->chunks)) {
+            throw new RuntimeException("cannot obtain the chunks ({$this->chunks})");
+        }
         $files = array_filter(array_map(function($file) {
             $basename = basename($file);
             if (!is_numeric($basename)) {
@@ -105,10 +108,10 @@ class ConcurrentFileWriter
         return $files;
     }
 
-    public function getMissingChunks()
+    public function getMissingChunks($chunks = array())
     {
         $missing = array();
-        $chunks  = $this->getChunks();
+        $chunks  = $chunks ? $chunks : $this->getChunks();
         $last    = array_shift($chunks);
 
         if ($last['offset'] !== 0) {
@@ -132,8 +135,14 @@ class ConcurrentFileWriter
         if (!empty($missing)) {
             throw new RuntimeException("File is incomplete, cannot finalize it");
         }
+
+        $lock = fopen($this->tmp . '.lock', 'r+');
+        if (!flock($lock, LOCK_EX | LOCK_NB)) {
+            return false;
+        }
+
         $chunks = $this->getChunks();
-        $file = new FileWriter($this->file, $this->tmp);
+        $file = new ChunkWriter($this->file, $this->tmp);
         $fp = $file->getStream();
         foreach ($chunks as $chunk) {
             $tmp = fopen($chunk['file'], 'r');
@@ -143,6 +152,12 @@ class ConcurrentFileWriter
         }
         $file->commit();
         Util::delete($this->tmp);
+
+        flock($lock, LOCK_UN);
+        fclose($lock); // We do not release the lock on porpuse.
+
+
+        return true;
     }
 
 }

@@ -4,14 +4,14 @@ namespace ConcurrentFileWriter;
 
 use RuntimeException;
 
-class FileWriter
+class ChunkWriter
 {
     protected $commited = false;
     protected $file;
     protected $tmp;
     protected $fp;
 
-    public function __construct($file, $tmp)
+    public function __construct($file, $tmp = NULL)
     {
         $this->file = $file;
         $this->tmp  = tempnam($tmp ?: sys_get_temp_dir(), 'tmp');
@@ -24,12 +24,13 @@ class FileWriter
             return;
         }
 
+        $this->commited = true;
+
         fflush($this->fp);
         fclose($this->fp);
-        if (!rename($this->tmp, $this->file)) {
+        if (!@rename($this->tmp, $this->file)) {
             throw new RuntimeException("Cannot move the temporary file");
         }
-        $this->commited = true;
         return $this->file;
     }
 
@@ -41,6 +42,7 @@ class FileWriter
 
     public function write($content)
     {
+        $this->checkIsUnCommitted();
         fwrite($this->fp, $content);
     }
 

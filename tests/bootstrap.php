@@ -18,4 +18,6 @@ function createRandomFile($size) {
     return $file;
 }
 
-Util::delete('files/');
+if ( ! empty( $GLOBALS['argv'][0] ) && '-' !== $GLOBALS['argv'][0] ) {
+	Util::delete('files/');
+}
