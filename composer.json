@@ -1,5 +1,6 @@
 {
     "name": "crodas/concurrent-file-writer",
+    "version": "v0.0.1",
     "autoload": {
         "psr-0": {
             "ConcurrentFileWriter": "src"
