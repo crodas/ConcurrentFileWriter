@@ -158,10 +158,35 @@ class BasicTest extends TestCase
     {
         $x = new ChunkWriter('files/tmp');
         $x->write('hi');
-        $x->commit();
+        $this->assertEquals('files/tmp', $x->commit());
+        $this->assertFalse($x->commit());
 
         $this->assertEquals('hi', file_get_contents('files/tmp'));
 
         $x->write('more text');
+    }
+
+    /**
+     * @dependsOn testChunkWriterDobleCommit
+     */
+    public function testChunkRollback()
+    {
+        $this->assertEquals('hi', file_get_contents('files/tmp'));
+        $x = new ChunkWriter('files/tmp');
+        $x->write('hi there');
+        $x->rollback();
+        $this->assertEquals('hi', file_get_contents('files/tmp'));
+    }
+
+    /**
+     * @dependsOn testChunkWriterDobleCommit
+     */
+    public function testChunkAutomaticallyRollback()
+    {
+        $this->assertEquals('hi', file_get_contents('files/tmp'));
+        $x = new ChunkWriter('files/tmp');
+        $x->write('hi there');
+        unset($x);
+        $this->assertEquals('hi', file_get_contents('files/tmp'));
     }
 }

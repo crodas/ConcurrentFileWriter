@@ -4,6 +4,10 @@ namespace ConcurrentFileWriter;
 
 class Util
 {
+    /**
+     * It is a tiny wrapper on top of mkdir, makes sure that it working with the desired
+     * permissions and it is recursive.
+     */
     public static function mkdir($path)
     {
         if (!is_dir($path)) {
@@ -11,6 +15,9 @@ class Util
         }
     }
 
+    /**
+     * Deletes a file or directory recursively.
+     */
     public static function delete($path)
     {
         if (!is_readable($path)) {

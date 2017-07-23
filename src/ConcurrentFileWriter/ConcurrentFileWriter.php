@@ -1,9 +1,45 @@
 <?php
+/*
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * This software consists of voluntary contributions made by many individuals
+ * and is licensed under the MIT license. For more information, see
+ * <http://www.doctrine-project.org>.
+ */
 
 namespace ConcurrentFileWriter;
 
 use RuntimeException;
 
+/**
+ * Concurrent File Writer
+ *
+ * This class allows PHP to write file content in paralle with very little locking. In fact locking is only
+ * needed at the file creation and when the write is finalizing. This allows multiple PHP process or requests
+ * to write the same file at the same time without locking each other.
+ *
+ * How does it work?
+ *
+ * Each time the write() is called a chunk file is created, which is a temporary file in the O.S. Then the finalize()
+ * funciton is called all those chunks are merged into the file. Because each chunk is a separated file there is no
+ * need for locking.
+ *
+ * Finalize() locks the file (meaning that only one finalize() can happen per file), because it is reposible for merging
+ * all the chunks into the file.
+ *
+ * @class ConcurrentFileWriter
+ * @author César Rodas.
+ */
 class ConcurrentFileWriter
 {
     protected $file;

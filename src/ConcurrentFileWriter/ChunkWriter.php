@@ -1,18 +1,43 @@
 <?php
+/*
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * This software consists of voluntary contributions made by many individuals
+ * and is licensed under the MIT license. For more information, see
+ * <http://www.doctrine-project.org>.
+ */
 
 namespace ConcurrentFileWriter;
 
 use RuntimeException;
 
 /**
+ * Chunk Writer
  *
+ * This class writes files atomically without any file locking mechanism.
+ *
+ * It creates an unique temporary file and upon `commit()` it will rename the temporary file to the
+ * name we need. By doing so we never have partial writes, and always the latest `commit()` wins.
+ *
+ * @class ChunkWriter
+ * @author César Rodas.
  */
 class ChunkWriter
 {
     /**
      * Is this this chunk finished?
      */
-    protected $commited = false;
+    protected $readOnly = false;
     protected $file;
     protected $tmp;
     protected $fp;
@@ -24,13 +49,31 @@ class ChunkWriter
         $this->fp   = fopen($this->tmp, 'w');
     }
 
+    /**
+     * Closes the temporary file, delete it and flags the object as read only.
+     */
+    public function rollback()
+    {
+        if ($this->readOnly) {
+            return false;
+        }
+        $this->readOnly = true;
+
+        fclose($this->fp);
+        unlink($this->tmp);
+    }
+
+    /**
+     * Finishes the writing of the file and saves it. After this function the object
+     * is pretty much read only.
+     */
     public function commit()
     {
-        if ($this->commited) {
-            return;
+        if ($this->readOnly) {
+            return false;
         }
 
-        $this->commited = true;
+        $this->readOnly = true;
 
         fflush($this->fp);
         fclose($this->fp);
@@ -40,6 +83,14 @@ class ChunkWriter
         return $this->file;
     }
 
+    /**
+     * Checks whether the argument is a valid PHP stream resource, otherwise it would be treated
+     * as a stream of bytes.
+     * 
+     * @param mixed $input
+     *
+     * @return bool
+     */
     protected function isStream($input)
     {
         if (!is_resource($input)) {
@@ -49,20 +100,39 @@ class ChunkWriter
         return is_array(stream_get_meta_data($input));
     }
 
+    /**
+     * Exposes the temporary file's stream resource so it can be used efficiently from a higher
+     * layer. If the object is flagged as read-only it will throw an exception.
+     *
+     * @return stream
+     */
     function getStream()
     {
-        $this->checkIsUncommitted();
+        $this->isWritable();
         return $this->fp;
     }
 
+    /**
+     * Exposes the filename.
+     */
     public function getFileName()
     {
-        return realpath($this->file);
+        return realpath($this->file) ?: $this->file;
     }
 
+    /**
+     * Writes $content into the file. $content can be an stream of bytes or a file stream. If $limit is 
+     * given, it will limit the amounts of bytes to copy to its value. This function returns the amount
+     * of bytes that were wrote. 
+     *
+     * @param mixed $content
+     * @param int   $limit
+     *
+     * @return int
+     */
     public function write($content, $limit = -1)
     {
-        $this->checkIsUnCommitted();
+        $this->isWritable();
         if ($this->isStream($content)) {
             $wrote = stream_copy_to_stream($content, $this->fp, $limit);
         } else {
@@ -71,17 +141,22 @@ class ChunkWriter
         return $wrote;
     }
 
-    function checkIsUnCommitted()
+    /**
+     * Checks if the object is writable. If the object is flagged as readOnly it will throw an exception.
+     */
+    public function isWritable()
     {
-        if ($this->commited) {
+        if ($this->readOnly) {
             throw new RuntimeException("Cannot perform any write modifications because the " . __CLASS__ . " object is committed");
         }
     }
 
+    /**
+     * The object was destroyed, try to rollback. If it was commited already this call to
+     * rollback has no effect.
+     */
     public function __destruct()
     {
-        if ($this->file && $this->tmp) {
-            $this->commit();
-        }
+        $this->rollback();
     }
 }
