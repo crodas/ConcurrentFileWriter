@@ -94,7 +94,7 @@ class ConcurrentFileWriter
      *
      * @param array $metadata
      *
-     * @return string 
+     * @return string
      */
     protected function placeholderContent(Array $metadata)
     {
@@ -113,7 +113,7 @@ class ConcurrentFileWriter
      * @param string|stream $content
      * @param int $limit
      *
-     * @return int The number of bytes that was written.
+     * @return BlockWriter Return the BlockWriter object.
      */
     public function write($offset, $input, $limit = -1)
     {
@@ -160,7 +160,7 @@ class ConcurrentFileWriter
      * Returns the empty blocks in a file, if any gap is missing `finalize()`
      * will fail and will throw an exception.
      *
-     * @param $blocks Provides the list of blocks, otherwise `getWroteBlocks()` will 
+     * @param $blocks Provides the list of blocks, otherwise `getWroteBlocks()` will
      *    be called.
      *
      * @return array
@@ -188,7 +188,7 @@ class ConcurrentFileWriter
 
     /**
      * Finalizes writing a file. The finalization of a file means check that there are no gap or missing
-     * block in a file, lock the file (so no other write may happen or another `finalize()`). 
+     * block in a file, lock the file (so no other write may happen or another `finalize()`).
      *
      * In here, after locking, all the blocks are merged into a single file. When the merging is ready,
      * we rename the temporary file as the filename we expected. When that process is done, all the blocks
@@ -206,7 +206,7 @@ class ConcurrentFileWriter
         if (!flock($lock, LOCK_EX | LOCK_NB)) {
             return false;
         }
-        
+
         $blocks  = $this->getWroteBlocks();
         $missing = $this->getMissingBlocks($blocks);
         if (!empty($missing)) {
