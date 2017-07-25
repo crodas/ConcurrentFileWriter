@@ -1,6 +1,9 @@
 {
     "name": "crodas/concurrent-file-writer",
-    "version": "v0.1.1",
+    "version": "v0.2.1",
+    "description": "Tiny library to write files concurrently with PHP",
+    "type": "library",
+    "license": "MIT",
     "autoload": {
         "psr-0": {
             "ConcurrentFileWriter": "src"
@@ -9,7 +12,7 @@
     "authors": [
         {
             "name": "Cesar Rodas",
-            "email": "cesar@rodas.me"
+            "email": "crodas@php.net"
         }
     ],
     "require": {},
