@@ -22,17 +22,17 @@ namespace ConcurrentFileWriter;
 use RuntimeException;
 
 /**
- * Chunk Writer
+ * Block Writer
  *
  * This class writes files atomically without any file locking mechanism.
  *
  * It creates an unique temporary file and upon `commit()` it will rename the temporary file to the
  * name we need. By doing so we never have partial writes, and always the latest `commit()` wins.
  *
- * @class ChunkWriter
+ * @class BlockWriter
  * @author César Rodas.
  */
-class ChunkWriter
+class BlockWriter
 {
     /**
      * Is this this chunk finished?

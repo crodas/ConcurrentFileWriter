@@ -3,7 +3,7 @@
 use PHPUnit\Framework\TestCase;
 
 use ConcurrentFileWriter\ConcurrentFileWriter;
-use ConcurrentFileWriter\ChunkWriter;
+use ConcurrentFileWriter\BlockWriter;
 
 class BasicTest extends TestCase
 {
@@ -81,7 +81,7 @@ class BasicTest extends TestCase
         $x->create();
         $x->write(0, 'hi there', 3);
         $chunk = $x->write(3, 'here');
-        $this->assertTrue($chunk instanceof ChunkWriter);
+        $this->assertTrue($chunk instanceof BlockWriter);
         $this->assertRegexp('@/3$@', $chunk->getFileName());
         $x->finalize();
         
@@ -102,7 +102,7 @@ class BasicTest extends TestCase
     /**
      * @expectedException RuntimeException
      */
-    public function testMissingChunk()
+    public function testMissingBlock()
     {
         $x = new ConcurrentFileWriter('files/str3');
         $x->create();
@@ -110,7 +110,7 @@ class BasicTest extends TestCase
         $x->write(50, 'here');
         $this->assertEquals(array(
             array('offset' => 3, 'size' => 47),
-        ), $x->getMissingChunks());
+        ), $x->getMissingBlocks());
 
         $x->finalize();
     }
@@ -118,14 +118,14 @@ class BasicTest extends TestCase
     /**
      * @expectedException RuntimeException
      */
-    public function testMissingChunkBeginning()
+    public function testMissingBlockBeginning()
     {
         $x = new ConcurrentFileWriter('files/str4');
         $x->create();
         $x->write(50, 'here');
         $this->assertEquals(array(
             array('offset' => 0, 'size' => 50),
-        ), $x->getMissingChunks());
+        ), $x->getMissingBlocks());
 
         $x->finalize();
     }
@@ -144,9 +144,9 @@ class BasicTest extends TestCase
     /**
      * @expectedException RuntimeException
      */
-    public function testChunkWriterPermissionException()
+    public function testBlockWriterPermissionException()
     {
-        $x =new ChunkWriter('/root/tmp');
+        $x =new BlockWriter('/root/tmp');
         $x->write('hi');
         $x->commit();
     }
@@ -154,9 +154,9 @@ class BasicTest extends TestCase
     /**
      * @expectedException RuntimeException
      */
-    public function testChunkWriterDobleCommit()
+    public function testBlockWriterDobleCommit()
     {
-        $x = new ChunkWriter('files/tmp');
+        $x = new BlockWriter('files/tmp');
         $x->write('hi');
         $this->assertEquals('files/tmp', $x->commit());
         $this->assertFalse($x->commit());
@@ -167,24 +167,24 @@ class BasicTest extends TestCase
     }
 
     /**
-     * @dependsOn testChunkWriterDobleCommit
+     * @dependsOn testBlockWriterDobleCommit
      */
-    public function testChunkRollback()
+    public function testBlockRollback()
     {
         $this->assertEquals('hi', file_get_contents('files/tmp'));
-        $x = new ChunkWriter('files/tmp');
+        $x = new BlockWriter('files/tmp');
         $x->write('hi there');
         $x->rollback();
         $this->assertEquals('hi', file_get_contents('files/tmp'));
     }
 
     /**
-     * @dependsOn testChunkWriterDobleCommit
+     * @dependsOn testBlockWriterDobleCommit
      */
-    public function testChunkAutomaticallyRollback()
+    public function testBlockAutomaticallyRollback()
     {
         $this->assertEquals('hi', file_get_contents('files/tmp'));
-        $x = new ChunkWriter('files/tmp');
+        $x = new BlockWriter('files/tmp');
         $x->write('hi there');
         unset($x);
         $this->assertEquals('hi', file_get_contents('files/tmp'));
