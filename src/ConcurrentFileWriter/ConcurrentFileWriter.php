@@ -46,10 +46,14 @@ class ConcurrentFileWriter
     protected $tmp;
     protected $blocks;
 
-    public function __construct($file)
+    public function __construct($file, $tmp = null)
     {
-        $this->file   = $file;
-        $this->tmp    = $this->file . '.part/';
+        $this->file = $file;
+        if ($tmp) {
+            $this->tmp = $tmp . '/' . sha1($this->file) . '/';
+        } else {
+            $this->tmp = $this->file . '.part/';
+        }
         $this->blocks = $this->tmp . 'blocks/';
     }
 

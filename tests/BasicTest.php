@@ -50,6 +50,8 @@ class BasicTest extends TestCase
         $x = new ConcurrentFileWriter($file);
         $this->assertTrue($x->create());
 
+        $this->assertTrue(is_dir($file . '.part'));
+
         $source = createRandomFile(10 * 1024 * 1024);
 
         $blocksize = 1024 * 1024;
@@ -61,7 +63,34 @@ class BasicTest extends TestCase
         }
         fclose($fp);
         $x->finalize();
+        $this->assertEquals(hash_file('sha256', $source), hash_file('sha256', $file));
+
         $x->finalize();
+    }
+
+    /**
+     * @expectedException RuntimeException
+     */
+    public function testGetBlockOnFinalizedFile()
+    {
+        $file = 'files/' . uniqid(true) . '.txt';
+        $x = new ConcurrentFileWriter($file);
+        $this->assertTrue($x->create());
+
+        $source = createRandomFile(10 * 1024 * 1024);
+
+        $blocksize = 1024 * 1024;
+        $times = 0;
+        $fp = fopen($source, 'r');
+        while (!feof($fp)) {
+            $x->write(ftell($fp), $fp, $blocksize);
+            ++$times;
+        }
+        fclose($fp);
+        $x->finalize();
+        $this->assertEquals(hash_file('sha256', $source), hash_file('sha256', $file));
+
+        $x->getWroteBlocks();
     }
 
     /**
@@ -188,5 +217,29 @@ class BasicTest extends TestCase
         $x->write('hi there');
         unset($x);
         $this->assertEquals('hi', file_get_contents('files/tmp'));
+    }
+
+    public function testWriteCustomTempFile() {
+        $file = 'files/' . uniqid(true) . '.txt';
+        $x = new ConcurrentFileWriter($file, 'files/temp/');
+        $this->assertTrue($x->create());
+
+        $this->assertTrue(is_dir('files/temp'));
+        $this->assertTrue(is_dir('files/temp/' . sha1( $file )));
+        $this->assertFalse(is_dir($file . '.part'));
+
+        $source = createRandomFile(10 * 1024 * 1024);
+
+        $blocksize = 1024 * 1024;
+        $times = 0;
+        $fp = fopen($source, 'r');
+        while (!feof($fp)) {
+            $x->write(ftell($fp), $fp, $blocksize);
+            ++$times;
+        }
+        fclose($fp);
+        $x->finalize();
+
+        $this->assertEquals(hash_file('sha256', $source), hash_file('sha256', $file));
     }
 }

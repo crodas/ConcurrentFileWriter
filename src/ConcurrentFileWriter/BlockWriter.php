@@ -86,7 +86,7 @@ class BlockWriter
     /**
      * Checks whether the argument is a valid PHP stream resource, otherwise it would be treated
      * as a stream of bytes.
-     * 
+     *
      * @param mixed $input
      *
      * @return bool
@@ -121,9 +121,9 @@ class BlockWriter
     }
 
     /**
-     * Writes $content into the file. $content can be an stream of bytes or a file stream. If $limit is 
+     * Writes $content into the file. $content can be an stream of bytes or a file stream. If $limit is
      * given, it will limit the amounts of bytes to copy to its value. This function returns the amount
-     * of bytes that were wrote. 
+     * of bytes that were wrote.
      *
      * @param mixed $content
      * @param int   $limit
