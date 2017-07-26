@@ -1,6 +1,6 @@
 {
     "name": "crodas/concurrent-file-writer",
-    "version": "v0.2.1",
+    "version": "v0.2.2",
     "description": "Tiny library to write files concurrently with PHP",
     "type": "library",
     "license": "MIT",
